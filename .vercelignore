@@ -1,8 +1,8 @@
-.git/
-node_modules/
-data/
-scripts/
-src/
-reseller-system/backend/
-reseller-system/frontend/node_modules/
+/.git/
+/node_modules/
+/data/
+/scripts/
+/src/
+/reseller-system/backend/
+/reseller-system/frontend/node_modules/
 *.log
