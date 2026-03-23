@@ -1,7 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "echo Skipping install for prebuilt static deploy",
-  "buildCommand": "echo Using committed frontend dist output",
+  "framework": "vite",
+  "installCommand": "npm --prefix reseller-system/frontend install",
+  "buildCommand": "npm --prefix reseller-system/frontend run build",
   "outputDirectory": "reseller-system/frontend/dist",
   "rewrites": [
     {
