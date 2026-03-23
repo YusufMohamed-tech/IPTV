@@ -9,7 +9,9 @@
     "dev": "node --watch src/server.js",
     "bot": "node src/telegramBot.js",
     "backup:users": "node scripts/backupUsers.js",
-    "migrate:supabase": "node scripts/migrateToSupabase.js"
+    "migrate:supabase": "node scripts/migrateToSupabase.js",
+    "build": "npm --prefix reseller-system/frontend install && npm --prefix reseller-system/frontend run build",
+    "vercel-build": "npm run build"
   },
   "keywords": [
     "iptv",

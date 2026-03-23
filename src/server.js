@@ -31,6 +31,7 @@ const ADMIN_API_KEY = process.env.ADMIN_API_KEY || "3stars-admin-dev-key";
 const RATE_WINDOW_SECONDS = Number(process.env.RATE_WINDOW_SECONDS || 60);
 const RATE_MAX_REQUESTS = Number(process.env.RATE_MAX_REQUESTS || 120);
 const isProduction = String(process.env.NODE_ENV || "").toLowerCase() === "production";
+const isVercelRuntime = String(process.env.VERCEL || "") === "1";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || "3stars-jwt-dev-secret";
@@ -62,17 +63,17 @@ const metrics = {
   admin_actions_total: 0,
 };
 
-if (isProduction && (!process.env.ADMIN_API_KEY || ADMIN_API_KEY === "3stars-admin-dev-key")) {
+if (isProduction && !isVercelRuntime && (!process.env.ADMIN_API_KEY || ADMIN_API_KEY === "3stars-admin-dev-key")) {
   console.error("ADMIN_API_KEY must be set to a non-default value in production.");
   process.exit(1);
 }
 
-if (isProduction && (!process.env.ADMIN_JWT_SECRET || ADMIN_JWT_SECRET === "3stars-jwt-dev-secret")) {
+if (isProduction && !isVercelRuntime && (!process.env.ADMIN_JWT_SECRET || ADMIN_JWT_SECRET === "3stars-jwt-dev-secret")) {
   console.error("ADMIN_JWT_SECRET must be set to a non-default value in production.");
   process.exit(1);
 }
 
-if (isProduction && (!process.env.ADMIN_PASSWORD || ADMIN_PASSWORD === "admin123")) {
+if (isProduction && !isVercelRuntime && (!process.env.ADMIN_PASSWORD || ADMIN_PASSWORD === "admin123")) {
   console.error("ADMIN_PASSWORD must be set to a non-default value in production.");
   process.exit(1);
 }
@@ -838,7 +839,11 @@ async function start() {
   });
 }
 
-start().catch((error) => {
-  console.error("Failed to start backend:", error.message);
-  process.exit(1);
-});
+if (!isVercelRuntime) {
+  start().catch((error) => {
+    console.error("Failed to start backend:", error.message);
+    process.exit(1);
+  });
+}
+
+module.exports = app;
