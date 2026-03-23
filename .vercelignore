@@ -5,5 +5,4 @@ scripts/
 src/
 reseller-system/backend/
 reseller-system/frontend/node_modules/
-reseller-system/frontend/dist/
 *.log

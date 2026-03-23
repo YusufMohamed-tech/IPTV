@@ -1,14 +1,8 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "reseller-system/frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
+  "installCommand": "echo Skipping install for prebuilt static deploy",
+  "buildCommand": "echo Using committed frontend dist output",
+  "outputDirectory": "reseller-system/frontend/dist",
   "routes": [
     {
       "handle": "filesystem"
