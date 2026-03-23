@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3Stars Admin Panel</title>
+  <style>
+    body {
+      font-family: Tahoma, Arial, sans-serif;
+      background: #f3f5f8;
+      margin: 0;
+      color: #1f2937;
+    }
+
+    .wrap {
+      max-width: 980px;
+      margin: 24px auto;
+      padding: 0 12px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 22px;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .row.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    input, select, button, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    button {
+      border: 0;
+      background: #0f766e;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button.secondary {
+      background: #374151;
+    }
+
+    button.danger {
+      background: #b91c1c;
+    }
+
+    pre {
+      background: #111827;
+      color: #e5e7eb;
+      padding: 12px;
+      border-radius: 8px;
+      overflow: auto;
+      min-height: 80px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th, td {
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      padding: 8px;
+    }
+
+    .hidden { display: none; }
+
+    @media (max-width: 900px) {
+      .row, .row.two {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>3Stars IPTV Admin Panel</h1>
+      <div id="authBox">
+        <div class="row two">
+          <input id="adminUser" placeholder="Admin username" value="admin" />
+          <input id="adminPass" placeholder="Admin password" type="password" />
+        </div>
+        <div class="row two">
+          <button id="loginBtn">Login</button>
+          <button class="secondary" id="legacyBtn">Use Legacy x-admin-key</button>
+        </div>
+        <div class="row two hidden" id="legacyRow">
+          <input id="legacyKey" placeholder="x-admin-key" />
+          <button id="saveLegacyBtn">Save Legacy Key</button>
+        </div>
+      </div>
+      <pre id="status">Not logged in.</pre>
+    </div>
+
+    <div class="card">
+      <h2>Users</h2>
+      <div class="row two">
+        <button id="refreshUsersBtn">Refresh Users</button>
+        <button class="secondary" id="metricsBtn">Get Metrics</button>
+      </div>
+      <div style="overflow:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>username</th>
+              <th>status</th>
+              <th>exp_date</th>
+              <th>max_connections</th>
+            </tr>
+          </thead>
+          <tbody id="usersBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Create User</h2>
+      <div class="row">
+        <input id="cUser" placeholder="username" />
+        <input id="cPass" placeholder="password" />
+        <input id="cDays" placeholder="days" type="number" value="30" />
+        <input id="cMax" placeholder="max connections" type="number" value="1" />
+      </div>
+      <div class="row two">
+        <select id="cStatus">
+          <option>Active</option>
+          <option>Disabled</option>
+        </select>
+        <button id="createBtn">Create</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Update / Delete User</h2>
+      <div class="row">
+        <input id="uUser" placeholder="username" />
+        <input id="uPass" placeholder="new password (optional)" />
+        <input id="uDays" placeholder="extend days (optional)" type="number" />
+        <input id="uMax" placeholder="max connections (optional)" type="number" />
+      </div>
+      <div class="row">
+        <select id="uStatus">
+          <option value="">status (optional)</option>
+          <option>Active</option>
+          <option>Disabled</option>
+        </select>
+        <select id="uTrial">
+          <option value="">is_trial (optional)</option>
+          <option value="0">0</option>
+          <option value="1">1</option>
+        </select>
+        <button id="updateBtn">Update</button>
+        <button class="danger" id="deleteBtn">Delete</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Response</h2>
+      <pre id="output"></pre>
+    </div>
+  </div>
+
+  <script>
+    const statusEl = document.getElementById("status");
+    const outputEl = document.getElementById("output");
+    const usersBody = document.getElementById("usersBody");
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function setOutput(data) {
+      outputEl.textContent = typeof data === "string" ? data : JSON.stringify(data, null, 2);
+    }
+
+    function getApiBase() {
+      if (location.pathname.startsWith("/api/")) {
+        return "/api";
+      }
+      return "";
+    }
+
+    function getHeaders() {
+      const token = localStorage.getItem("adminToken");
+      const legacy = localStorage.getItem("legacyKey");
+      const headers = { "Content-Type": "application/json" };
+
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      } else if (legacy) {
+        headers["x-admin-key"] = legacy;
+      }
+
+      return headers;
+    }
+
+    async function api(path, options = {}) {
+      const response = await fetch(`${getApiBase()}${path}`, {
+        ...options,
+        headers: { ...getHeaders(), ...(options.headers || {}) },
+      });
+      const text = await response.text();
+      let data = text;
+      try {
+        data = JSON.parse(text);
+      } catch (_) {}
+
+      if (!response.ok) {
+        throw new Error(typeof data === "string" ? data : JSON.stringify(data));
+      }
+
+      return data;
+    }
+
+    function daysToUnix(days) {
+      return String(Math.floor(Date.now() / 1000) + Number(days) * 86400);
+    }
+
+    async function login() {
+      try {
+        const username = document.getElementById("adminUser").value.trim();
+        const password = document.getElementById("adminPass").value;
+        const data = await api("/admin/login", {
+          method: "POST",
+          body: JSON.stringify({ username, password }),
+          headers: { "Content-Type": "application/json" },
+        });
+        localStorage.setItem("adminToken", data.token);
+        setStatus("Logged in with JWT token.");
+        setOutput(data);
+      } catch (error) {
+        setOutput(String(error));
+      }
+    }
+
+    async function refreshUsers() {
+      try {
+        const users = await api("/admin/users");
+        usersBody.innerHTML = users
+          .map((u) => `<tr><td>${u.username}</td><td>${u.status}</td><td>${u.exp_date}</td><td>${u.max_connections}</td></tr>`)
+          .join("");
+        setOutput(users);
+      } catch (error) {
+        setOutput(String(error));
+      }
+    }
+
+    async function getMetrics() {
+      try {
+        const data = await api("/admin/metrics");
+        setOutput(data);
+      } catch (error) {
+        setOutput(String(error));
+      }
+    }
+
+    async function createUser() {
+      try {
+        const username = document.getElementById("cUser").value.trim();
+        const password = document.getElementById("cPass").value;
+        const days = document.getElementById("cDays").value;
+        const max = document.getElementById("cMax").value;
+        const status = document.getElementById("cStatus").value;
+
+        const data = await api("/admin/users", {
+          method: "POST",
+          body: JSON.stringify({
+            username,
+            password,
+            exp_date: daysToUnix(days),
+            max_connections: Number(max),
+            status,
+            is_trial: 0,
+          }),
+        });
+        setOutput(data);
+        refreshUsers();
+      } catch (error) {
+        setOutput(String(error));
+      }
+    }
+
+    async function updateUser() {
+      try {
+        const username = document.getElementById("uUser").value.trim();
+        const password = document.getElementById("uPass").value;
+        const days = document.getElementById("uDays").value;
+        const max = document.getElementById("uMax").value;
+        const status = document.getElementById("uStatus").value;
+        const isTrial = document.getElementById("uTrial").value;
+
+        const patch = {};
+        if (password) patch.password = password;
+        if (days) patch.exp_date = daysToUnix(days);
+        if (max) patch.max_connections = Number(max);
+        if (status) patch.status = status;
+        if (isTrial !== "") patch.is_trial = Number(isTrial);
+
+        const data = await api(`/admin/users/${encodeURIComponent(username)}`, {
+          method: "PATCH",
+          body: JSON.stringify(patch),
+        });
+        setOutput(data);
+        refreshUsers();
+      } catch (error) {
+        setOutput(String(error));
+      }
+    }
+
+    async function deleteUser() {
+      try {
+        const username = document.getElementById("uUser").value.trim();
+        if (!username) {
+          setOutput("Enter username first.");
+          return;
+        }
+        const data = await api(`/admin/users/${encodeURIComponent(username)}`, {
+          method: "DELETE",
+        });
+        setOutput(data);
+        refreshUsers();
+      } catch (error) {
+        setOutput(String(error));
+      }
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", login);
+    document.getElementById("refreshUsersBtn").addEventListener("click", refreshUsers);
+    document.getElementById("metricsBtn").addEventListener("click", getMetrics);
+    document.getElementById("createBtn").addEventListener("click", createUser);
+    document.getElementById("updateBtn").addEventListener("click", updateUser);
+    document.getElementById("deleteBtn").addEventListener("click", deleteUser);
+
+    document.getElementById("legacyBtn").addEventListener("click", () => {
+      document.getElementById("legacyRow").classList.toggle("hidden");
+    });
+
+    document.getElementById("saveLegacyBtn").addEventListener("click", () => {
+      const key = document.getElementById("legacyKey").value.trim();
+      if (!key) {
+        setOutput("Legacy key is empty.");
+        return;
+      }
+      localStorage.setItem("legacyKey", key);
+      localStorage.removeItem("adminToken");
+      setStatus("Legacy x-admin-key is saved.");
+    });
+  </script>
+</body>
+</html>

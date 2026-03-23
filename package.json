@@ -1,0 +1,27 @@
+{
+  "name": "3stars-iptv-backend",
+  "version": "1.0.0",
+  "description": "Xtream Codes compatible backend API for 3 Stars IPTV",
+  "main": "src/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "bot": "node src/telegramBot.js",
+    "backup:users": "node scripts/backupUsers.js",
+    "migrate:supabase": "node scripts/migrateToSupabase.js"
+  },
+  "keywords": [
+    "iptv",
+    "xtream",
+    "m3u",
+    "xmltv"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.3",
+    "node-telegram-bot-api": "^0.66.0",
+    "pg": "^8.16.3"
+  }
+}
