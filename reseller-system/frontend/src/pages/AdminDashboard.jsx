@@ -11,26 +11,41 @@ function AdminDashboard() {
   const [packages, setPackages] = useState([]);
   const [servers, setServers] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [loadError, setLoadError] = useState("");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
 
-  async function load() {
-    const [dash, resellerRes, pkgRes, serverRes, notifRes] = await Promise.all([
-      http.get("/admin/dashboard"),
-      http.get("/admin/resellers"),
-      http.get("/admin/packages"),
-      http.get("/admin/servers"),
-      http.get("/admin/notifications"),
-    ]);
+  function toArray(value) {
+    return Array.isArray(value) ? value : [];
+  }
 
-    setSummary(dash.data);
-    setResellers(resellerRes.data);
-    setPackages(pkgRes.data);
-    setServers(serverRes.data);
-    setNotifications(notifRes.data.list || []);
+  async function load() {
+    try {
+      setLoadError("");
+      const [dash, resellerRes, pkgRes, serverRes, notifRes] = await Promise.all([
+        http.get("/admin/dashboard"),
+        http.get("/admin/resellers"),
+        http.get("/admin/packages"),
+        http.get("/admin/servers"),
+        http.get("/admin/notifications"),
+      ]);
+
+      setSummary(typeof dash.data === "object" && dash.data !== null ? dash.data : null);
+      setResellers(toArray(resellerRes.data));
+      setPackages(toArray(pkgRes.data));
+      setServers(toArray(serverRes.data));
+      setNotifications(toArray(notifRes.data?.list));
+    } catch (_) {
+      setLoadError("Backend API is unreachable. You are signed in with local demo access.");
+      setSummary(null);
+      setResellers([]);
+      setPackages([]);
+      setServers([]);
+      setNotifications([]);
+    }
   }
 
   useEffect(() => {
-    load().catch(() => {});
+    load();
   }, []);
 
   async function createReseller(event) {
@@ -51,6 +66,7 @@ function AdminDashboard() {
 
   return (
     <DashboardLayout>
+      {loadError ? <section className="panel">{loadError}</section> : null}
       <section className="grid-cards">
         <StatCard title="Total Resellers" value={summary?.totalResellers || 0} />
         <StatCard title="Total Clients" value={summary?.totalClients || 0} />

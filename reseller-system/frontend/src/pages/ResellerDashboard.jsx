@@ -10,25 +10,39 @@ function ResellerDashboard() {
   const [clients, setClients] = useState([]);
   const [packages, setPackages] = useState([]);
   const [subscriptions, setSubscriptions] = useState([]);
+  const [loadError, setLoadError] = useState("");
   const [clientForm, setClientForm] = useState({ name: "", email: "", password: "" });
   const [subForm, setSubForm] = useState({ clientId: "", packageId: "", isTrial: false });
 
-  async function load() {
-    const [dash, clientRes, packageRes, subRes] = await Promise.all([
-      http.get("/reseller/dashboard"),
-      http.get("/reseller/clients"),
-      http.get("/reseller/packages"),
-      http.get("/reseller/subscriptions"),
-    ]);
+  function toArray(value) {
+    return Array.isArray(value) ? value : [];
+  }
 
-    setSummary(dash.data);
-    setClients(clientRes.data);
-    setPackages(packageRes.data);
-    setSubscriptions(subRes.data);
+  async function load() {
+    try {
+      setLoadError("");
+      const [dash, clientRes, packageRes, subRes] = await Promise.all([
+        http.get("/reseller/dashboard"),
+        http.get("/reseller/clients"),
+        http.get("/reseller/packages"),
+        http.get("/reseller/subscriptions"),
+      ]);
+
+      setSummary(typeof dash.data === "object" && dash.data !== null ? dash.data : null);
+      setClients(toArray(clientRes.data));
+      setPackages(toArray(packageRes.data));
+      setSubscriptions(toArray(subRes.data));
+    } catch (_) {
+      setLoadError("Backend API is unreachable. You are signed in with local demo access.");
+      setSummary(null);
+      setClients([]);
+      setPackages([]);
+      setSubscriptions([]);
+    }
   }
 
   useEffect(() => {
-    load().catch(() => {});
+    load();
   }, []);
 
   async function createClient(event) {
@@ -60,6 +74,7 @@ function ResellerDashboard() {
 
   return (
     <DashboardLayout>
+      {loadError ? <section className="panel">{loadError}</section> : null}
       <section className="grid-cards">
         <StatCard title="Total Clients" value={summary?.totalClients || 0} />
         <StatCard title="Revenue" value={`$${summary?.revenue || 0}`} />
