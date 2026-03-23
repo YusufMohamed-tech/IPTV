@@ -4,21 +4,50 @@ import http from "../api/http";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const demoEmail = import.meta.env.VITE_DEMO_EMAIL || "yusufmohamedyak55@gmail.com";
+  const demoPassword = import.meta.env.VITE_DEMO_PASSWORD || "Admin";
   const [user, setUser] = useState(() => {
     const raw = localStorage.getItem("iptv_user");
     return raw ? JSON.parse(raw) : null;
   });
 
   async function login(email, password) {
-    const { data } = await http.post("/auth/login", { email, password });
-    localStorage.setItem("iptv_token", data.token);
-    localStorage.setItem("iptv_user", JSON.stringify(data.user));
-    setUser(data.user);
+    try {
+      const { data } = await http.post("/auth/login", { email, password });
+      localStorage.setItem("iptv_token", data.token);
+      localStorage.setItem("iptv_user", JSON.stringify(data.user));
+      localStorage.removeItem("iptv_demo_mode");
+      setUser(data.user);
+      return;
+    } catch (error) {
+      const isFallbackMatch =
+        String(email || "").toLowerCase() === String(demoEmail).toLowerCase()
+        && String(password || "") === String(demoPassword);
+
+      if (!isFallbackMatch) {
+        throw error;
+      }
+
+      const demoUser = {
+        id: "demo-admin",
+        name: "Demo Admin",
+        email: demoEmail,
+        role: "admin",
+        credits: 0,
+        revenue: 0,
+      };
+
+      localStorage.setItem("iptv_token", "demo-token");
+      localStorage.setItem("iptv_user", JSON.stringify(demoUser));
+      localStorage.setItem("iptv_demo_mode", "1");
+      setUser(demoUser);
+    }
   }
 
   function logout() {
     localStorage.removeItem("iptv_token");
     localStorage.removeItem("iptv_user");
+    localStorage.removeItem("iptv_demo_mode");
     setUser(null);
   }
 

@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 function DashboardLayout({ children }) {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const isDemoMode = typeof window !== "undefined" && localStorage.getItem("iptv_demo_mode") === "1";
 
   const links = user?.role === "admin"
     ? [{ to: "/admin", label: "Admin Dashboard" }]
@@ -28,7 +29,10 @@ function DashboardLayout({ children }) {
           Sign out
         </button>
       </aside>
-      <main className="dashboard-content">{children}</main>
+      <main className="dashboard-content">
+        {isDemoMode ? <div className="panel">Demo mode is enabled. Backend login is currently unavailable.</div> : null}
+        {children}
+      </main>
     </div>
   );
 }
