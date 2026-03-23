@@ -235,3 +235,16 @@ Notes:
 - Prepared template file:
   - `scripts/nginx-https-template.conf`
 - Replace `your-domain.com` and certificate paths, then enable it in Nginx.
+
+## Vercel Deployment (Frontend Only)
+
+This repository contains both backend and frontend code. For Vercel, deploy only the React app under `reseller-system/frontend`.
+
+Root-level `vercel.json` is included to enforce frontend build/output:
+
+- Build command: `npm --prefix reseller-system/frontend install && npm --prefix reseller-system/frontend run build`
+- Output directory: `reseller-system/frontend/dist`
+
+Required Vercel environment variable:
+
+- `VITE_API_URL` -> your live backend API base URL (example: `http://188.166.61.68/api`)
